@@ -283,6 +283,7 @@ func _build_ui() -> void:
 		{"text": "ĐÁNH", "action": "attack", "pos": Vector2(990, 560), "size": Vector2(74, 70)},
 		{"text": "THÁNH ƯỚC", "action": "skill", "pos": Vector2(1076, 540), "size": Vector2(124, 78)},
 		{"text": "NÉ", "action": "dash", "pos": Vector2(1205, 580), "size": Vector2(70, 62)},
+		{"text": "BÌNH MÁU", "action": "potion", "pos": Vector2(670, 555), "size": Vector2(96, 68)},
 		{"text": "NÓI", "action": "interact", "pos": Vector2(780, 555), "size": Vector2(92, 65)}
 	]
 	for item in controls:
@@ -891,7 +892,7 @@ func _open_detail(which: String) -> void:
 		return
 	active_detail = which
 	if which == "inventory":
-		detail_text.text = "TÚI ĐỒ — %s\n\nMảnh thần tích: %d/3\nLinh dược: %d (nhấn H để hồi 70 HP)\nVàng: %d\n\nTrang bị: %s\nThánh Ước: %s\n\nThương nhân Nghi bán linh dược: 80 vàng. Đứng gần và nhấn E." % [
+		detail_text.text = "TÚI ĐỒ — %s\n\nMảnh thần tích: %d/3\nLinh dược: %d (phím H hoặc nút BÌNH MÁU để hồi 70 HP)\nVàng: %d\n\nTrang bị: %s\nThánh Ước: %s\n\nThương nhân Nghi bán linh dược: 80 vàng. Đứng gần và nhấn E." % [
 			hero_name, fragments, potions, gold,
 			"Kiếm thánh đã sửa" if quest_stage >= 3 else "Kiếm gãy",
 			"Đã thức tỉnh" if quest_stage >= 7 else "Đang hình thành"
