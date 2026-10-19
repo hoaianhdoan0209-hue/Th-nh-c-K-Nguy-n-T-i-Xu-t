@@ -49,16 +49,19 @@ Do not add `--force` (it would delete this project). Configure local `godogen_as
 
 Asset generation reference: https://github.com/0x0funky/agent-sprite-forge . Heretic (https://github.com/p-e-w/heretic) is an LLM-ablation tool, **not** a game-generation engine, and is deliberately not part of runtime gameplay.
 
-## Honest validation ledger
+## Honest validation ledger — 2026-10-19
 
 | Gate | Status |
 | --- | --- |
-| Repository with source commits | In progress |
-| Static review of GDScript and gameplay-state transitions | Pending |
-| Godot import/type/parser gate | **Not yet performed** |
-| Godot playtest of full loop | **Not yet performed** |
-| HTTPS browser build | **Not yet performed** |
-| Safari iPhone hands-on test | **Not yet performed** |
+| GitHub source commits and original assets | **Committed** |
+| Godot 4.3 import/type/parser + headless launch | **PASS** — [validation run](https://github.com/hoaianhdoan0209-hue/Th-nh-c-K-Nguy-n-T-i-Xu-t/actions/runs/39287955034) |
+| Scripted chapter quest/boss/items/save/load test | **PASS** — 27 assertions including missing-sprite audit, input movement, class skills and dodge |
+| Browser/Web export on GitHub Actions | **PASS** — [HTML/WASM/PCK artifact](https://github.com/hoaianhdoan0209-hue/Th-nh-c-K-Nguy-n-T-i-Xu-t/actions/runs/39288694512) |
+| GitHub Pages HTTPS publication | **WAITING** — enable Settings → Pages → Source: GitHub Actions. The workflow detects missing Pages and skips deployment without failing the Web build. |
+| Full 10-minute hands-on manual playtest | **NOT YET VERIFIED** |
+| Real iPhone Safari end-to-end controls | **NOT YET VERIFIED** |
+
+GitHub Actions passing shows the source imports, exports and its scripted state machine passes. It does **not** certify real mobile ergonomics, finished animations, balanced boss combat or the feel of NRO Online. Do not present the Web artifact as a hosted HTTPS URL until Pages deployment succeeds.
 
 ## Source conventions
 
