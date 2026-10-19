@@ -380,6 +380,7 @@ func _button(parent: Node, txt: String, at: Vector2, area: Vector2) -> Button:
 
 func _new_game(selected_role: int) -> void:
 	role = selected_role
+	_reset_action_timers()
 	hero_name = name_input.text.strip_edges()
 	if hero_name.is_empty():
 		hero_name = "Người Giữ Ước"
@@ -408,6 +409,26 @@ func _new_game(selected_role: int) -> void:
 	_refresh_world()
 	_update_hud()
 	_notice("Hãy tìm Bà Mộc. Không cần chiến đấu ngay.")
+
+func _reset_action_timers() -> void:
+	attack_cd = 0.0
+	skill_cd = 0.0
+	dash_cd = 0.0
+	dash_left = 0.0
+	combo_left = 0.0
+	combo_index = 0
+	invincible_left = 0.0
+	guard_left = 0.0
+	mp_recovery = 0.0
+	jump_queued = false
+	touch_left = false
+	touch_right = false
+	active_detail = ""
+	if detail_panel != null:
+		detail_panel.hide()
+	if dialogue_panel != null:
+		dialogue_panel.hide()
+
 
 func _set_role_stats() -> void:
 	match role:
@@ -926,6 +947,7 @@ func _load_game() -> void:
 		if started:
 			_notice("Chưa có điểm lưu hợp lệ.")
 		return
+	_reset_action_timers()
 	role = clampi(int(cfg.get_value("hero", "role", 0)), 0, 2)
 	hero_name = str(cfg.get_value("hero", "name", "Người Giữ Ước"))
 	level = maxi(1, int(cfg.get_value("hero", "level", 1)))
