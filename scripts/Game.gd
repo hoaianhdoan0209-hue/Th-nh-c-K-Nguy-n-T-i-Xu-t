@@ -29,7 +29,7 @@ const QUESTS: Array[String] = [
 ]
 const NPCS: Array[Dictionary] = [
 	{"x": 270.0, "name": "Bà Mộc", "kind": "elder", "art": "elder"},
-	{"x": 475.0, "name": "Thương nhân Nghi", "kind": "shop", "art": "merchant"},
+	{"x": 475.0, "name": "Thương nhân Nghi", "kind": "shop", "art": "shop"},
 	{"x": 700.0, "name": "Thợ rèn Vân", "kind": "smith", "art": "smith"},
 	{"x": 1090.0, "name": "Trinh sát Diệp", "kind": "scout", "art": "scout"}
 ]
