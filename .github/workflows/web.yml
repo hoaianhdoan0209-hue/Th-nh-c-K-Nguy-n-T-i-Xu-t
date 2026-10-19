@@ -70,10 +70,42 @@ jobs:
             web-export.log
           if-no-files-found: ignore
 
+
+  check-pages:
+    name: Check whether GitHub Pages is enabled
+    needs: web-export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      enabled: ${{ steps.status.outputs.enabled }}
+    steps:
+      - name: Inspect Pages configuration
+        id: status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.repos.getPages({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              core.setOutput('enabled', 'true');
+              core.info('GitHub Pages is enabled.');
+            } catch (error) {
+              if (error.status === 404) {
+                core.setOutput('enabled', 'false');
+                core.notice('GitHub Pages is disabled. Enable it once at Settings > Pages > Build and deployment > Source: GitHub Actions.');
+              } else {
+                throw error;
+              }
+            }
+
   deploy-pages:
     name: Publish browser build to GitHub Pages
-    needs: web-export
-    if: github.ref == 'refs/heads/main'
+    needs: [web-export, check-pages]
+    if: github.ref == 'refs/heads/main' && needs.check-pages.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
