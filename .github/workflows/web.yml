@@ -120,6 +120,14 @@ jobs:
         with:
           name: game9-web-build
           path: build/web
+      - name: Verify downloaded playable files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/web/index.html
+          test -n "$(find build/web -maxdepth 1 -name '*.wasm' -print -quit)"
+          test -n "$(find build/web -maxdepth 1 -name '*.pck' -print -quit)"
+          echo "Godot Web game files are present and ready for Pages."
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site
