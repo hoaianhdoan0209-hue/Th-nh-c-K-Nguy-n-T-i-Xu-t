@@ -27,6 +27,15 @@ jobs:
     steps:
       - name: Checkout game
         uses: actions/checkout@v4
+      - name: Install export templates in Actions home
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          test -d /root/.local/share/godot/export_templates/4.3.stable
+          cp -a /root/.local/share/godot/export_templates/4.3.stable "$HOME/.local/share/godot/export_templates/"
+          test -s "$HOME/.local/share/godot/export_templates/4.3.stable/web_nothreads_release.zip"
+          ls -lh "$HOME/.local/share/godot/export_templates/4.3.stable"/web_nothreads_*.zip
       - name: Import Godot assets
         shell: bash
         run: |
