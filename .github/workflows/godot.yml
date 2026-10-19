@@ -1,0 +1,43 @@
+name: Godot 4 validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  import-and-parse:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Import SVG assets and project
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path . --import 2>&1 | tee import.log
+      - name: Parse gameplay GDScript
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path . --check-only --script res://scripts/Game.gd 2>&1 | tee parse.log
+      - name: Launch headless scene
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path . --quit-after 90 2>&1 | tee launch.log
+      - name: Reject script/parser errors
+        shell: bash
+        run: |
+          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed loading resource|Invalid get index' import.log parse.log launch.log
+      - name: Collect logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-validation-logs
+          path: |
+            import.log
+            parse.log
+            launch.log
