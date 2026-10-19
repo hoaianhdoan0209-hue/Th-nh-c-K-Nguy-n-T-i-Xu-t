@@ -13,7 +13,7 @@ func _check(condition: bool, title: String) -> void:
 		failures += 1
 		push_error("FAIL: " + title)
 
-func _complete_dialogue(game: Node2D, count: int) -> void:
+func _complete_dialogue(game: Variant, count: int) -> void:
 	for i in range(count):
 		game._next_dialogue()
 
@@ -23,7 +23,7 @@ func _run() -> void:
 		push_error("Main scene is missing")
 		quit(1)
 		return
-	var game: Node2D = scene.instantiate() as Node2D
+	var game: Variant = scene.instantiate()
 	root.add_child(game)
 	await process_frame
 	for role in range(3):
