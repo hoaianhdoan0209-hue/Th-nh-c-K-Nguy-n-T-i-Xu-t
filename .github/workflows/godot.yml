@@ -28,10 +28,16 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --quit-after 90 2>&1 | tee launch.log
+      - name: Exercise opening quest to final boss and save/load
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/SmokeTest.gd 2>&1 | tee smoke.log
+          grep -q 'SMOKE TEST PASS' smoke.log
       - name: Reject script/parser errors
         shell: bash
         run: |
-          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed loading resource|Invalid get index' import.log parse.log launch.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed loading resource|Invalid get index' import.log parse.log launch.log smoke.log
       - name: Collect logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -41,3 +47,4 @@ jobs:
             import.log
             parse.log
             launch.log
+            smoke.log
