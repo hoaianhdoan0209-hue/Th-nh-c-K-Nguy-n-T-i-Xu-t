@@ -1,5 +1,9 @@
 name: Godot 4 validation
 
+concurrency:
+  group: godot-validation-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
