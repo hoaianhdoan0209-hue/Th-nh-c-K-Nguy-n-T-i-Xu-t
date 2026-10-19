@@ -112,7 +112,12 @@ func _build_world() -> void:
 	add_child(world)
 	for i in range(3):
 		var bg := Sprite2D.new()
-		bg.texture = load("res://assets/bg_village.svg") as Texture2D if i == 0 else (load("res://assets/bg_forest.svg") as Texture2D if i == 1 else load("res://assets/bg_temple.svg") as Texture2D)
+		if i == 0:
+			bg.texture = load("res://assets/bg_village.svg") as Texture2D
+		elif i == 1:
+			bg.texture = load("res://assets/bg_forest.svg") as Texture2D
+		else:
+			bg.texture = load("res://assets/bg_temple.svg") as Texture2D
 		bg.position = Vector2(float(i) * 1400.0 + 700.0, 360.0)
 		world.add_child(bg)
 		var ground := ColorRect.new()
@@ -270,7 +275,7 @@ func _build_ui() -> void:
 	]:
 		var action := str(spec[1])
 		var btn := _button(ui, str(spec[0]), Vector2(float(spec[2]), 168.0), Vector2(92, 40))
-		btn.pressed.connect(func() -> void: _perform_action(action))
+		btn.pressed.connect(_perform_action.bind(action))
 	var controls := [
 		{"text": "◀", "action": "left", "pos": Vector2(24, 551), "size": Vector2(74, 76)},
 		{"text": "▶", "action": "right", "pos": Vector2(111, 551), "size": Vector2(74, 76)},
@@ -290,7 +295,7 @@ func _build_ui() -> void:
 			b.button_up.connect(func() -> void: touch_right = false)
 		else:
 			var a := str(item["action"])
-			b.pressed.connect(func() -> void: _perform_action(a))
+			b.pressed.connect(_perform_action.bind(a))
 	detail_panel = Panel.new()
 	detail_panel.position = Vector2(300, 174)
 	detail_panel.size = Vector2(690, 348)
@@ -337,7 +342,7 @@ func _build_title() -> void:
 		var idx: int = i
 		var desc: String = ["HIỆP SĨ • phản công và chịu đòn", "PHÁP SƯ • đánh xa và ấn thuật", "THÁNH Y • chữa lành và thanh tẩy"][i]
 		var choice := _button(title_panel, "%s — %s" % [ROLE_NAMES[i], desc], Vector2(306, 359 + 67 * i), Vector2(672, 55))
-		choice.pressed.connect(func() -> void: _new_game(idx))
+		choice.pressed.connect(_new_game.bind(idx))
 	var load_btn := _button(title_panel, "TIẾP TỤC ĐIỂM LƯU", Vector2(459, 580), Vector2(353, 56))
 	load_btn.pressed.connect(_load_game)
 	_label_at(title_panel, "Di chuyển A/D, nhảy Space, tương tác E. Có nút cảm ứng khi xoay ngang.", Vector2(265, 651), Vector2(880, 44), 16)
@@ -648,8 +653,8 @@ func _take_damage(amount: int) -> void:
 	_notice("Trúng đòn: -%d HP%s" % [actual, " (đã đỡ)" if guard_left > 0.0 else ""])
 	if hp <= 0:
 		gold = maxi(0, gold - 20)
-		hp = maxi(1, max_hp / 2)
-		mp = maxi(1, max_mp / 2)
+		hp = maxi(1, int(max_hp / 2.0))
+		mp = maxi(1, int(max_mp / 2.0))
 		hero.position = Vector2(110.0, FLOOR_Y - 43.0)
 		_notice("Bị đánh bại! Trở về làng, mất 20 vàng. Nhiệm vụ vẫn được giữ.")
 
