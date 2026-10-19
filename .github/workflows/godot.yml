@@ -41,7 +41,7 @@ jobs:
       - name: Reject script/parser errors
         shell: bash
         run: |
-          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed loading resource|Invalid get index' import.log parse.log launch.log smoke.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed loading resource|Invalid get index|(^|[[:space:]])ERROR:' import.log parse.log launch.log smoke.log
       - name: Collect logs
         if: always()
         uses: actions/upload-artifact@v4
