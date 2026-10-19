@@ -1,0 +1,6 @@
+.godot/
+*.import
+.DS_Store
+logs/
+captures/
+godot-log.txt
