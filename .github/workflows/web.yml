@@ -1,0 +1,62 @@
+name: Build browser playable (Web)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "assets/**"
+      - ".github/workflows/web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game9-web-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-export:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout game
+        uses: actions/checkout@v4
+      - name: Import Godot assets
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path . --import 2>&1 | tee web-import.log
+      - name: Export mobile browser build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html 2>&1 | tee web-export.log
+          test -s build/web/index.html
+          test -n "$(find build/web -maxdepth 1 -name '*.wasm' -print -quit)"
+          test -n "$(find build/web -maxdepth 1 -name '*.pck' -print -quit)"
+          ! grep -E 'SCRIPT ERROR|Parse Error|(^|[[:space:]])ERROR:' web-import.log web-export.log
+          ls -lh build/web
+      - name: Store browser-playable files
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: game9-web-build
+          path: build/web/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload export logs for debugging
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: game9-web-export-logs
+          path: |
+            web-import.log
+            web-export.log
+          if-no-files-found: ignore
