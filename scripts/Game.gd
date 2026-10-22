@@ -98,10 +98,19 @@ var dash_cd: float = 0.0
 var invincible_left: float = 0.0
 var guard_left: float = 0.0
 var mp_recovery: float = 0.0
+var companion: Node2D
+var companion_unlocked: bool = false
+var animation_time: float = 0.0
+var coyote_left: float = 0.0
+var jump_buffer: float = 0.0
+var attack_visual_left: float = 0.0
+var companion_hint: Label
+var last_zone: int = -1
 
 func _ready() -> void:
 	_build_world()
 	_build_hero()
+	_build_companion()
 	_build_ui()
 	_refresh_world()
 	_update_hud()
@@ -307,6 +316,10 @@ func _build_ui() -> void:
 	var close_detail := _button(detail_panel, "ĐÓNG", Vector2(515, 291), Vector2(146, 40))
 	close_detail.pressed.connect(_close_detail)
 	detail_panel.hide()
+	var god_button := _button(ui, "THẦN [R]", Vector2(1100, 219), Vector2(110, 40))
+	god_button.pressed.connect(_perform_action.bind("companion"))
+	companion_hint = _label_at(ui, "", Vector2(490, 76), Vector2(740, 25), 16)
+	companion_hint.add_theme_color_override("font_color", Color("#a6e8ed"))
 	dialogue_panel = Panel.new()
 	dialogue_panel.position = Vector2(225, 460)
 	dialogue_panel.size = Vector2(830, 206)
@@ -343,7 +356,7 @@ func _build_title() -> void:
 		var idx: int = i
 		var desc: String = ["HIỆP SĨ • phản công và chịu đòn", "PHÁP SƯ • đánh xa và ấn thuật", "THÁNH Y • chữa lành và thanh tẩy"][i]
 		var choice := _button(title_panel, "%s — %s" % [ROLE_NAMES[i], desc], Vector2(306, 359 + 67 * i), Vector2(672, 55))
-		choice.pressed.connect(_new_game.bind(idx))
+		choice.pressed.connect(_begin_story.bind(idx))
 	var load_btn := _button(title_panel, "TIẾP TỤC ĐIỂM LƯU", Vector2(459, 580), Vector2(353, 56))
 	load_btn.pressed.connect(_load_game)
 	_label_at(title_panel, "Di chuyển A/D, nhảy Space, tương tác E. Có nút cảm ứng khi xoay ngang.", Vector2(265, 651), Vector2(880, 44), 16)
@@ -368,6 +381,7 @@ func _label_at(parent: Node, txt: String, at: Vector2, area: Vector2, font_size:
 
 func _button(parent: Node, txt: String, at: Vector2, area: Vector2) -> Button:
 	var button := Button.new()
+	button.focus_mode = Control.FOCUS_NONE
 	button.text = txt
 	button.position = at
 	button.size = area
@@ -381,6 +395,9 @@ func _button(parent: Node, txt: String, at: Vector2, area: Vector2) -> Button:
 
 func _new_game(selected_role: int) -> void:
 	role = selected_role
+	companion_unlocked = true
+	last_zone = -1
+	companion.position = Vector2(55, FLOOR_Y - 150)
 	_reset_action_timers()
 	hero_name = name_input.text.strip_edges()
 	if hero_name.is_empty():
@@ -398,6 +415,7 @@ func _new_game(selected_role: int) -> void:
 	_set_role_stats()
 	hp = max_hp
 	mp = max_mp
+	hero.velocity = Vector2.ZERO
 	hero.position = Vector2(100, FLOOR_Y - 43)
 	for e in enemy_data:
 		e["dead"] = false
@@ -422,6 +440,9 @@ func _reset_action_timers() -> void:
 	guard_left = 0.0
 	mp_recovery = 0.0
 	jump_queued = false
+	jump_buffer = 0.0
+	coyote_left = 0.0
+	attack_visual_left = 0.0
 	touch_left = false
 	touch_right = false
 	active_detail = ""
@@ -469,6 +490,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_perform_action("map")
 		KEY_Q:
 			_perform_action("quest")
+		KEY_R:
+			_perform_action("companion")
 		KEY_H:
 			_perform_action("potion")
 		KEY_F5:
@@ -483,6 +506,7 @@ func _physics_process(delta: float) -> void:
 			notice_text.text = ""
 	if not started:
 		return
+	_animate_world(delta)
 	if attack_cd > 0.0:
 		attack_cd -= delta
 	if skill_cd > 0.0:
@@ -511,15 +535,23 @@ func _physics_process(delta: float) -> void:
 		facing = dir
 	hero_visual.flip_h = facing < 0
 	hero.velocity.y = minf(hero.velocity.y + GRAVITY * delta, 1050.0)
+	if hero.is_on_floor():
+		coyote_left = 0.12
+	else:
+		coyote_left = maxf(0.0, coyote_left - delta)
 	if jump_queued:
-		if hero.is_on_floor():
-			hero.velocity.y = JUMP_SPEED
+		jump_buffer = 0.14
 		jump_queued = false
-		_notice("Nhảy qua vật cản và lên bệ đá.")
+	else:
+		jump_buffer = maxf(0.0, jump_buffer - delta)
+	if jump_buffer > 0.0 and coyote_left > 0.0:
+		hero.velocity.y = JUMP_SPEED
+		jump_buffer = 0.0
+		coyote_left = 0.0
 	if dash_left > 0.0:
 		hero.velocity.x = float(facing) * 790.0
 	else:
-		hero.velocity.x = float(dir) * SPEED
+		hero.velocity.x = move_toward(hero.velocity.x, float(dir) * SPEED, 2200.0 * delta)
 	hero.move_and_slide()
 	hero.position.x = clampf(hero.position.x, 32.0, WIDTH - 40.0)
 	if quest_stage < 3 and hero.position.x > 1350.0:
@@ -564,6 +596,8 @@ func _perform_action(action: String) -> void:
 			_dash()
 		"interact":
 			_interact()
+		"companion":
+			_talk_companion()
 		"potion":
 			_use_potion()
 
@@ -573,6 +607,8 @@ func _normal_attack() -> void:
 	attack_cd = 0.33 if role != 1 else 0.42
 	combo_index = (combo_index % 3) + 1
 	combo_left = 1.0
+	attack_visual_left = 0.26
+	_slash_effect(140.0 if role == 1 else 105.0, Color("#fff0af"))
 	var damage: int = attack_power + combo_index * 5
 	var reach: float = 140.0 if role == 1 else 105.0
 	var hits: int = _strike(damage, reach)
@@ -589,6 +625,7 @@ func _use_skill() -> void:
 		mp -= 18
 		skill_cd = 6.0
 		guard_left = 3.0
+		_slash_effect(155.0, Color("#a6e8ed"))
 		_strike(attack_power + 20, 155.0)
 		_notice("THẾ THỦ: chống chịu 3 giây và phản kích cận chiến!")
 	elif role == 1:
@@ -597,6 +634,7 @@ func _use_skill() -> void:
 			return
 		mp -= 28
 		skill_cd = 5.0
+		_slash_effect(360.0, Color("#c8b6ff"))
 		var hit := _strike(attack_power + 55, 360.0)
 		_notice("ẤN TINH: tia phép xuyên tới kẻ địch! Trúng %d." % hit)
 	else:
@@ -606,6 +644,8 @@ func _use_skill() -> void:
 		mp -= 22
 		skill_cd = 7.0
 		hp = mini(max_hp, hp + 42)
+		_floating_text("+42 HP", hero.position + Vector2(0, -100), Color("#b2f0bd"))
+		_slash_effect(185.0, Color("#b2f0bd"))
 		_strike(attack_power + 28, 185.0)
 		_notice("LỜI NGUYỆN: hồi 42 HP và thanh tẩy bóng tối.")
 
@@ -625,6 +665,7 @@ func _strike(damage: int, reach: float) -> int:
 		var target := e["node"] as Node2D
 		var diff: float = target.position.x - hero.position.x
 		if float(facing) * diff >= -18.0 and float(facing) * diff <= reach and absf(target.position.y - hero.position.y) < 115.0:
+			_floating_text("-%d" % damage, target.position + Vector2(0, -85), Color("#fff0af"))
 			e["hp"] = int(e["hp"]) - damage
 			hits += 1
 			(e["sprite"] as Sprite2D).modulate = Color("#ffc2c2")
@@ -670,6 +711,7 @@ func _take_damage(amount: int) -> void:
 	var actual: int = amount
 	if guard_left > 0.0:
 		actual = maxi(1, int(float(amount) * 0.35))
+	_floating_text("-%d HP" % actual, hero.position + Vector2(0, -100), Color("#ff8e8e"))
 	hp = maxi(0, hp - actual)
 	invincible_left = 0.5
 	_notice("Trúng đòn: -%d HP%s" % [actual, " (đã đỡ)" if guard_left > 0.0 else ""])
@@ -700,6 +742,7 @@ func _enemy_died(e: Dictionary) -> void:
 
 func _gain_xp(amount: int) -> void:
 	xp += amount
+	_floating_text("+%d XP" % amount, hero.position + Vector2(0, -145), Color("#a6e8ed"))
 	var needed: int = level * 100
 	while xp >= needed:
 		xp -= needed
@@ -776,7 +819,7 @@ func _talk_elder() -> void:
 	elif quest_stage == 6:
 		_show_dialogue("Bà Mộc", [
 			"Ngươi đã trở lại... và cả tế đàn cũng đã sáng lên! Vực Không Tên đang suy yếu.",
-			"Không ai phong ngươi làm vua. Chính những hành động ấy đã khiến lời thề hồi sinh.",
+			"Ngai vàng có thể đã mất, nhưng hôm nay người đã giữ trọn lời thề của một vị vua.",
 			"Ta trao cho ngươi 300 vàng, một bình linh dược và danh hiệu Người Giữ Ước.",
 			"Chương I khép lại. Chặng đường của đoàn hiệp sĩ chỉ vừa bắt đầu."
 		], "chapter_end")
@@ -855,6 +898,7 @@ func _refresh_world() -> void:
 		var idx: int = int(e["idx"])
 		(e["node"] as Node2D).visible = not bool(e["dead"]) and (quest_stage >= 5 if idx == 3 else quest_stage >= 3)
 	altar_sprite.modulate = Color("#f6f5aa") if altar_purified else Color("#9daab9")
+	companion.visible = started and companion_unlocked
 	gate_village.visible = quest_stage < 3
 	gate_temple.visible = quest_stage < 5
 	if hero_visual != null:
@@ -935,6 +979,7 @@ func _save_game() -> void:
 	cfg.set_value("world", "defeated", defeated)
 	cfg.set_value("world", "boss_defeated", boss_defeated)
 	cfg.set_value("world", "altar", altar_purified)
+	cfg.set_value("world", "companion", companion_unlocked)
 	var err: Error = cfg.save(SAVE_PATH)
 	if err == OK:
 		_notice("Đã lưu tiến trình vào bộ nhớ trò chơi.")
@@ -965,6 +1010,8 @@ func _load_game() -> void:
 	for i in range(3):
 		collected[i] = bool(saved_collected[i]) if i < saved_collected.size() else false
 		defeated[i] = bool(saved_defeated[i]) if i < saved_defeated.size() else false
+	companion_unlocked = bool(cfg.get_value("world", "companion", true))
+	last_zone = -1
 	altar_purified = bool(cfg.get_value("world", "altar", false))
 	boss_defeated = bool(cfg.get_value("world", "boss_defeated", false))
 	for e in enemy_data:
@@ -977,9 +1024,88 @@ func _load_game() -> void:
 		clampf(float(cfg.get_value("hero", "x", 100.0)), 50.0, WIDTH - 50.0),
 		clampf(float(cfg.get_value("hero", "y", FLOOR_Y - 43.0)), 50.0, FLOOR_Y - 43.0)
 	)
+	hero.velocity = Vector2.ZERO
+	companion.position = hero.position + Vector2(-65, -105)
 	started = true
 	title_panel.hide()
 	hero.visible = true
 	_refresh_world()
 	_update_hud()
 	_notice("Đã tải tiến trình: %s — nhiệm vụ %d." % [hero_name, quest_stage])
+
+
+func _begin_story(selected_role: int) -> void:
+	_new_game(selected_role)
+	_show_dialogue("Aurel — Vị thần của Lời Thề", [
+		"Bệ hạ... cuối cùng người đã tỉnh. Ba trăm năm trôi qua kể từ trận chiến cuối cùng của chúng ta.",
+		"Ta là Aurel. Để đưa người trở về, ta đã đánh đổi thần điện và phần lớn quyền năng của mình.",
+		"Vương quốc người từng bảo vệ giờ chỉ còn những làng nhỏ giữa màn sương Vực. Nhưng người dân vẫn thắp đèn chờ một hiệp sĩ.",
+		"Ta sẽ đi cùng người. Trước hết, hãy gặp Bà Mộc dưới chân ngọn đèn thánh. Nhấn E để trò chuyện; R để hỏi ta về hành trình."
+	], "opening")
+
+func _build_companion() -> void:
+	companion = Node2D.new()
+	companion.name = "Aurel"
+	var sprite := Sprite2D.new()
+	sprite.texture = load("res://assets/aurel.svg") as Texture2D
+	companion.add_child(sprite)
+	companion.add_child(_world_label("Aurel · Thần Lời Thề", Vector2(-80, -70), 14))
+	world.add_child(companion)
+	companion.hide()
+
+func _talk_companion() -> void:
+	if not companion_unlocked:
+		return
+	var advice: Array[String] = [
+		"Bà Mộc ở cạnh ngọn đèn, phía phải nơi người tỉnh dậy. Hãy đến gần bà rồi nhấn E.",
+		"Ba mảnh thần tích nằm ở phía đông làng. Một mảnh ở trên bệ đá: nhấn Space hoặc NHẢY để lên đó.",
+		"Đã đủ ba mảnh. Hãy quay lại Thợ rèn Vân ở giữa làng; ông ấy có thể nối lại thanh kiếm.",
+		"Ba sinh vật Vực đang giữ khu rừng. Dùng J để liên kích, K để dùng thánh thuật, L để né khi chúng đỏ lên.",
+		"Khu rừng đã yên. Tế đàn ở cuối rừng đang đợi lời thề của người; đến gần và nhấn E.",
+		"Kẻ Giữ Vực báo đòn trước khi đánh. Giữ bình máu cho lúc nguy cấp; khi nó mất nửa máu, đòn đánh sẽ mạnh hơn.",
+		"Ta cảm nhận ngọn đèn trong làng sáng trở lại. Hãy về gặp Bà Mộc để hoàn thành lời hứa.",
+		"Người đã khôi phục Thánh Ước đầu tiên. Chương tiếp theo vẫn chưa được xây dựng; chúng ta có thể tiếp tục khám phá vùng đất này."
+	]
+	_show_dialogue("Aurel — Vị thần đồng hành", [advice[quest_stage], "Ta sẽ ở bên người. Mỗi lời thề được giữ sẽ đưa ánh sáng trở lại vùng đất này."], "")
+
+func _animate_world(delta: float) -> void:
+	animation_time += delta
+	attack_visual_left = maxf(0.0, attack_visual_left - delta)
+	var moving: bool = absf(hero.velocity.x) > 15.0 and hero.is_on_floor()
+	hero_visual.position.y = -16.0 + (sin(animation_time * 16.0) * 3.0 if moving else sin(animation_time * 2.0) * 1.1)
+	hero_visual.rotation = float(facing) * (-0.13 if attack_visual_left > 0.0 else (0.045 if moving else 0.0))
+	hero_visual.modulate = Color("#b7efff") if guard_left > 0.0 else Color.WHITE
+	if invincible_left > 0.0:
+		hero_visual.modulate.a = 0.55 + absf(sin(animation_time * 25.0)) * 0.45
+	var target: Vector2 = hero.position + Vector2(-float(facing) * 72.0, -110.0 + sin(animation_time * 2.4) * 10.0)
+	companion.position = companion.position.lerp(target, 1.0 - exp(-5.0 * delta))
+	for i in range(pickup_nodes.size()):
+		pickup_nodes[i].rotation = sin(animation_time * 2.0 + float(i)) * 0.12
+	var zone: int = mini(2, int(hero.position.x / 1400.0))
+	if zone != last_zone and not dialogue_panel.visible:
+		last_zone = zone
+		companion_hint.text = ["Aurel: Đèn thánh vẫn sáng. Hãy giúp những người ở đây.", "Aurel: Quái Vực báo đòn bằng ánh đỏ. Hãy chuẩn bị né.", "Aurel: Ta ở bên người. Hãy giữ trọn lời thề."][zone]
+
+func _floating_text(value: String, at: Vector2, tint: Color) -> void:
+	var label: Label = _world_label(value, at - Vector2(35, 0), 22)
+	label.modulate = tint
+	label.z_index = 20
+	world.add_child(label)
+	var tween: Tween = create_tween().set_parallel(true)
+	tween.tween_property(label, "position:y", label.position.y - 65.0, 0.85)
+	tween.tween_property(label, "modulate:a", 0.0, 0.85).set_delay(0.15)
+	tween.chain().tween_callback(label.queue_free)
+
+func _slash_effect(reach: float, tint: Color) -> void:
+	var arc := Line2D.new()
+	arc.width = 7.0
+	arc.default_color = tint
+	arc.z_index = 10
+	arc.position = hero.position + Vector2(0, -15)
+	for i in range(17):
+		var angle: float = -1.15 + float(i) / 16.0 * 2.3
+		arc.add_point(Vector2(cos(angle) * reach * float(facing), sin(angle) * 72.0))
+	world.add_child(arc)
+	var tween: Tween = create_tween()
+	tween.tween_property(arc, "modulate:a", 0.0, 0.23)
+	tween.tween_callback(arc.queue_free)

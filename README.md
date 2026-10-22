@@ -8,6 +8,20 @@
 
 This repository belongs to Game 9. The user's ratings for prior Game 8 were 8/10 graphics and 7/10 overall. Game 9's priority is deeper interconnected systems, not static art.
 
+## Playable opening update — 2026-10-22
+
+- Choosing a path now starts a four-line return-of-the-king opening with Aurel, an original god of vows. The existing game title is preserved.
+- Aurel follows the hero in the world. **R / THẦN** opens advice for the current quest stage; companion state survives save/load, including older saves.
+- Movement accelerates and brakes; jumping supports 120 ms coyote time and a 140 ms input buffer. Attack arcs, floating damage/XP and lightweight character motion provide feedback.
+- Original project-authored SVG art remains placeholder art. No NRO executable code, sprites or server endpoints were imported from the supplied RAR. This remains a single-player vertical slice, not a live MMO.
+- Local Godot 4.3 import, gameplay parse and the expanded **34-assertion** chapter/combat/companion/save test pass. Manual full chapter, real phone play and production balance remain unverified.
+
+| Asset | Description | In-game size | Path | Origin |
+| --- | --- | --- | --- | --- |
+| Aurel | Floating divine companion | 100 × 116 px | `assets/aurel.svg` | Original project-authored SVG; no paid generation |
+| Existing heroes and NPCs | Three paths and village cast | Native SVG sizes, roughly 114 × 146 px | `assets/*.svg` | Existing project-authored placeholder art |
+| Existing zone backdrops | Village, forest, temple | 1400 × 720 px each | `assets/bg_*.svg` | Existing project-authored placeholder art |
+
 ## Target gameplay loop
 
 Choose ONE of three paths and name the character → meet elder → recover three fragments → repair broken sword → repel Vực creatures → purify an altar → defeat a boss → return and receive the first Sacred Covenant. A quest changes the world; rewards modify combat and travel.

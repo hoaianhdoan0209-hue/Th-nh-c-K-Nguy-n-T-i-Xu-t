@@ -40,6 +40,14 @@ func _run() -> void:
 	for role in range(3):
 		game._new_game(role)
 		_check(game.role == role and game.hp == game.max_hp, "role " + str(role) + " starts with correct stats")
+	game._begin_story(0)
+	_check(game.dialogue_panel.visible and game.dialogue_name.text.contains("Aurel"), "new character opens return-of-the-king story")
+	_check(game.companion.visible and game.companion_unlocked, "divine companion appears in world")
+	_complete_dialogue(game, 4)
+	_check(not game.dialogue_panel.visible and game.quest_stage == 0, "opening ends without skipping elder quest")
+	game._perform_action("companion")
+	_check(game.dialogue_panel.visible and game.dialogue_text.text.contains("Bà Mộc"), "companion gives actionable stage-zero guidance")
+	_complete_dialogue(game, 2)
 	game._new_game(0)
 	game._use_skill()
 	_check(game.guard_left > 0.0 and game.mp == game.max_mp - 18, "Vệ Ước skill activates defense and spends MP")
@@ -59,6 +67,16 @@ func _run() -> void:
 		await physics_frame
 	game.touch_right = false
 	_check(game.hero.position.x > start_x + 3.0, "touch movement changes actual character position")
+	for _frame in range(12):
+		await physics_frame
+	game._perform_action("jump")
+	for _frame in range(3):
+		await physics_frame
+	_check(game.hero.velocity.y < 0.0, "jump input launches actual body off the floor")
+	game.hero.position = Vector2(120, 567)
+	game.hero.velocity = Vector2.ZERO
+	game.coyote_left = 0.0
+	game.jump_buffer = 0.0
 	game.hero.position.x = 270.0
 	game._interact()
 	_check(game.dialogue_panel.visible, "elder opens story dialogue")
@@ -125,6 +143,10 @@ func _run() -> void:
 	_check(game.quest_stage == 0, "fresh role selection resets game")
 	game._load_game()
 	_check(game.quest_stage == 7 and game.boss_defeated and game.role == 0, "save reload restores completed chapter and chosen role")
+	_check(game.companion_unlocked and game.companion.visible, "save reload restores divine companion")
+	game._talk_companion()
+	_check(game.dialogue_text.text.contains("chưa được xây dựng"), "final companion advice clearly states chapter scope")
+	_complete_dialogue(game, 2)
 	if failures == 0:
 		print("SMOKE TEST PASS: sprite integrity, roles, input, combat, quests, boss and persistence")
 	else:
