@@ -14,6 +14,8 @@ This repository belongs to Game 9. The user's ratings for prior Game 8 were 8/10
 - Aurel follows the hero in the world. **R / THẦN** opens advice for the current quest stage; companion state survives save/load, including older saves.
 - Movement accelerates and brakes; jumping supports 120 ms coyote time and a 140 ms input buffer. Attack arcs, floating damage/XP and lightweight character motion provide feedback.
 - Original project-authored SVG art remains placeholder art. No NRO executable code, sprites or server endpoints were imported from the supplied RAR. This remains a single-player vertical slice, not a live MMO.
+- Desktop hides touch buttons so they do not cover the hero or combat; touchscreen devices retain them.
+- Rendered opening, jump and hit-feedback stills were inspected on local Godot 4.3 using Mesa llvmpipe. This software renderer is unsuitable for the required video proof; no gameplay video or full manual-play claim is made. The cloud browser separately reports WebGL2 unavailable.
 - Local Godot 4.3 import, gameplay parse and the expanded **34-assertion** chapter/combat/companion/save test pass. Manual full chapter, real phone play and production balance remain unverified.
 
 | Asset | Description | In-game size | Path | Origin |

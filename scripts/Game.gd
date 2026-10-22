@@ -274,7 +274,7 @@ func _build_ui() -> void:
 	quest_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	notice_text = _label_at(ui, "", Vector2(475, 98), Vector2(785, 50), 19)
 	notice_text.add_theme_color_override("font_color", Color("#fff2a1"))
-	hint_text = _label_at(ui, "[E] Tương tác   [J] Đánh   [K] Kỹ năng   [L] Né   [H] Hồi máu", Vector2(22, 657), Vector2(950, 30), 16)
+	hint_text = _label_at(ui, "[A/D] Đi   [Space] Nhảy   [E] Nói   [J] Đánh   [K] Kỹ năng   [L] Né   [H] Máu   [R] Thần", Vector2(22, 657), Vector2(950, 30), 16)
 	for spec in [
 		["TÚI [I]", "inventory", 708.0],
 		["NV [Q]", "quest", 814.0],
@@ -297,6 +297,7 @@ func _build_ui() -> void:
 	]
 	for item in controls:
 		var b := _button(ui, str(item["text"]), item["pos"], item["size"])
+		b.visible = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
 		if str(item["action"]) == "left":
 			b.button_down.connect(func() -> void: touch_left = true)
 			b.button_up.connect(func() -> void: touch_left = false)
@@ -397,7 +398,7 @@ func _new_game(selected_role: int) -> void:
 	role = selected_role
 	companion_unlocked = true
 	last_zone = -1
-	companion.position = Vector2(55, FLOOR_Y - 150)
+	companion.position = Vector2(90, FLOOR_Y - 150)
 	_reset_action_timers()
 	hero_name = name_input.text.strip_edges()
 	if hero_name.is_empty():
@@ -1078,6 +1079,7 @@ func _animate_world(delta: float) -> void:
 	if invincible_left > 0.0:
 		hero_visual.modulate.a = 0.55 + absf(sin(animation_time * 25.0)) * 0.45
 	var target: Vector2 = hero.position + Vector2(-float(facing) * 72.0, -110.0 + sin(animation_time * 2.4) * 10.0)
+	target.x = clampf(target.x, 90.0, WIDTH - 100.0)
 	companion.position = companion.position.lerp(target, 1.0 - exp(-5.0 * delta))
 	for i in range(pickup_nodes.size()):
 		pickup_nodes[i].rotation = sin(animation_time * 2.0 + float(i)) * 0.12
